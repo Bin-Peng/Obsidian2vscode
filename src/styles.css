@@ -1,0 +1,19 @@
+.obsidian-to-vscode {
+  /* 基础样式设置 */
+  font-family: var(--font-interface);
+}
+
+.obsidian-to-vscode-button {
+  /* 按钮样式 */
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: 4px;
+  background-color: var(--interactive-accent);
+  color: var(--text-on-accent);
+  cursor: pointer;
+}
+
+.obsidian-to-vscode-button:hover {
+  background-color: var(--interactive-accent-hover);
+}

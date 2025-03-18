@@ -1,0 +1,10 @@
+{
+  "id": "switch2vscode",
+  "name": "Switch to VSCode",
+  "version": "1.0.0",
+  "minAppVersion": "0.15.0",
+  "description": "在VSCode中打开当前Obsidian文件",
+  "author": "mochen0514",
+  "isDesktopOnly": true,
+  "main": "main.js"
+}

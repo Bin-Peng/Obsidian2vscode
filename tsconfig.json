@@ -1,0 +1,17 @@
+{
+    "compilerOptions": {
+      "target": "ES6",                    // 输出 ES6 兼容代码，Obsidian 的 Electron 环境支持
+      "module": "CommonJS",               // 输出 CommonJS 模块，与 Obsidian 兼容
+      "strict": true,                     // 启用所有严格类型检查（包括 noImplicitAny 和 strictNullChecks）
+      "esModuleInterop": true,            // 支持 CommonJS 和 ES 模块的互操作性
+      "allowSyntheticDefaultImports": true, // 允许默认导入语法
+      "moduleResolution": "node",         // 使用 Node.js 风格的模块解析
+      "outDir": "dist",                   // 输出目录为 dist
+      "rootDir": "src",                   // 源代码目录为 src
+      "sourceMap": true,                  // 生成独立的 .map 文件，便于调试
+      "skipLibCheck": true,               // 跳过库文件检查，加快编译速度
+      "lib": ["ES6"]                      // 只需 ES6 库，Obsidian 环境已足够
+    },
+    "include": ["src/**/*.ts"],           // 只包含 src 目录下的 .ts 文件
+    "exclude": ["node_modules", "dist"]   // 排除 node_modules 和 dist
+  }
