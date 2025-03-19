@@ -53,7 +53,8 @@
 - **VSCode可执行文件路径**：
   - Windows默认值：`code.cmd`
   - macOS/Linux默认值：`code`
-  - 如果VSCode不在系统PATH中，需要设置为完整路径（如：`/Applications/Visual Studio Code.app`）
+  - 如果VSCode不在系统PATH中，需要设置为完整路径（如：`Visual Studio Code.app`）
+  - macos下不使用vscode，改为其他编辑应用也可以打开文件
 
 ## 常见问题
 

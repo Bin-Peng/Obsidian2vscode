@@ -87,6 +87,12 @@ export default class Switch2VSCodePlugin extends Plugin {
         // 处理仓库路径，用于同时打开仓库文件夹
         const vaultPathFormatted = vaultPath.replace(/"/g, '\"').replace(/ /g, '\ ');
         
+        // 获取VSCode路径
+        let vscodePath = this.settings.vscodeExecutablePath;
+        if (!vscodePath.startsWith('/Applications/') && platform() !== 'win32') {
+            vscodePath = `/Applications/${vscodePath}`;
+        }
+
         if (platform() === 'win32') {
             // Windows平台命令构建
             if (openWithFolder) {
@@ -99,23 +105,16 @@ export default class Switch2VSCodePlugin extends Plugin {
         } else {
             // macOS 处理
             if (openWithFolder) {
-                // 使用命令行方式同时打开文件和文件夹
-                // 如果是.app结尾，尝试使用命令行方式
-                if (this.settings.vscodeExecutablePath.endsWith('.app')) {
-                    // 使用默认的命令行工具
+                if (vscodePath.endsWith('.app')) {
                     command = `"/usr/local/bin/code" "${vaultPathFormatted}" --goto "${absolutePath}:${line}:${column}"`;
                 } else {
-                    // 使用设置的命令行工具
-                    command = `"${this.settings.vscodeExecutablePath}" "${vaultPathFormatted}" --goto "${absolutePath}:${line}:${column}"`;
+                    command = `"${vscodePath}" "${vaultPathFormatted}" --goto "${absolutePath}:${line}:${column}"`;
                 }
             } else {
-                // 只打开文件，使用open命令
-                if (this.settings.vscodeExecutablePath.endsWith('.app')) {
-                    // 使用open -a命令打开应用程序
-                    command = `open -a "${this.settings.vscodeExecutablePath}" "${absolutePath}"`;
+                if (vscodePath.endsWith('.app')) {
+                    command = `open -a "${vscodePath}" "${absolutePath}"`;
                 } else {
-                    // 如果不是.app结尾，尝试使用命令行直接打开文件
-                    command = `"${this.settings.vscodeExecutablePath}" "${absolutePath}" --goto ${line}:${column}`;
+                    command = `"${vscodePath}" "${absolutePath}" --goto ${line}:${column}`;
                 }
             }
         }
