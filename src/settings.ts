@@ -3,5 +3,5 @@ export interface Switch2VSCodeSettings {
 }
 
 export const DEFAULT_SETTINGS: Switch2VSCodeSettings = {
-    vscodeExecutablePath: '/usr/local/bin/code'
+    vscodeExecutablePath: '/Applications/Visual Studio Code.app'
 };

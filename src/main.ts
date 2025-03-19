@@ -6,7 +6,7 @@ interface Switch2VSCodeSettings {
     vscodeExecutablePath: string;
 }
 
-const DEFAULT_VSCODE_PATH = platform() === 'win32' ? 'code.cmd' : '/usr/local/bin/code';
+const DEFAULT_VSCODE_PATH = platform() === 'win32' ? 'code.cmd' : '/Applications/Visual Studio Code.app';
 
 const DEFAULT_SETTINGS: Switch2VSCodeSettings = {
     vscodeExecutablePath: DEFAULT_VSCODE_PATH
