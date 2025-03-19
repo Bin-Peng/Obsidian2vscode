@@ -4,12 +4,12 @@ import { platform } from 'os';
 
 interface Switch2VSCodeSettings {
     vscodeExecutablePath: string;
-    openVaultFolder: boolean;
 }
 
+const DEFAULT_VSCODE_PATH = platform() === 'win32' ? 'code.cmd' : '/usr/local/bin/code';
+
 const DEFAULT_SETTINGS: Switch2VSCodeSettings = {
-    vscodeExecutablePath: platform() === 'win32' ? 'code.cmd' : '/usr/local/bin/code',
-    openVaultFolder: false
+    vscodeExecutablePath: DEFAULT_VSCODE_PATH
 };
 
 export default class Switch2VSCodePlugin extends Plugin {
@@ -18,15 +18,28 @@ export default class Switch2VSCodePlugin extends Plugin {
     async onload() {
         await this.loadSettings();
 
-        // 添加命令到命令面板
+        // 添加命令到命令面板 - 只打开文件
         this.addCommand({
             id: 'open-in-vscode',
             name: '在VSCode中打开当前文件',
-            callback: () => this.openInVSCode(),
+            callback: () => this.openInVSCode(false),
             hotkeys: [
                 {
                     modifiers: ['Mod', 'Alt'],
                     key: 'B'
+                }
+            ]
+        });
+        
+        // 添加命令到命令面板 - 同时打开文件和文件夹
+        this.addCommand({
+            id: 'open-in-vscode-with-folder',
+            name: '在VSCode中同时打开当前文件和仓库文件夹',
+            callback: () => this.openInVSCode(true),
+            hotkeys: [
+                {
+                    modifiers: ['Mod', 'Alt'],
+                    key: 'F'
                 }
             ]
         });
@@ -43,7 +56,7 @@ export default class Switch2VSCodePlugin extends Plugin {
         await this.saveData(this.settings);
     }
 
-    async openInVSCode() {
+    async openInVSCode(openWithFolder: boolean) {
         const activeFile = this.app.workspace.getActiveFile();
         if (!activeFile) {
             new Notice('未找到活动文件');
@@ -76,7 +89,7 @@ export default class Switch2VSCodePlugin extends Plugin {
         
         if (platform() === 'win32') {
             // Windows平台命令构建
-            if (this.settings.openVaultFolder) {
+            if (openWithFolder) {
                 // 同时打开文件和仓库文件夹
                 command = `"${this.settings.vscodeExecutablePath}" "${vaultPathFormatted}" "${absolutePath}" --goto ${line}:${column}`;
             } else {
@@ -84,39 +97,25 @@ export default class Switch2VSCodePlugin extends Plugin {
                 command = `"${this.settings.vscodeExecutablePath}" "${absolutePath}" --goto ${line}:${column}`;
             }
         } else {
-            // macOS 优先使用应用程序路径方式打开
-            const defaultVSCodePath = '/Applications/Visual Studio Code.app';
-            if (this.settings.vscodeExecutablePath === '/usr/local/bin/code') {
-                // 如果设置为默认的'/usr/local/bin/code'命令，先尝试使用命令行方式以支持同时打开文件夹
-                if (this.settings.openVaultFolder) {
-                    // 同时打开文件和仓库文件夹
-                    command = `"${this.settings.vscodeExecutablePath}" "${vaultPathFormatted}" --goto "${absolutePath}:${line}:${column}"`;
+            // macOS 处理
+            if (openWithFolder) {
+                // 使用命令行方式同时打开文件和文件夹
+                // 如果是.app结尾，尝试使用命令行方式
+                if (this.settings.vscodeExecutablePath.endsWith('.app')) {
+                    // 使用默认的命令行工具
+                    command = `"/usr/local/bin/code" "${vaultPathFormatted}" --goto "${absolutePath}:${line}:${column}"`;
                 } else {
-                    // 只打开文件
-                    command = `"${this.settings.vscodeExecutablePath}" --goto "${absolutePath}:${line}:${column}"`
+                    // 使用设置的命令行工具
+                    command = `"${this.settings.vscodeExecutablePath}" "${vaultPathFormatted}" --goto "${absolutePath}:${line}:${column}"`;
                 }
             } else {
-                // 使用用户自定义的路径
+                // 只打开文件，使用open命令
                 if (this.settings.vscodeExecutablePath.endsWith('.app')) {
                     // 使用open -a命令打开应用程序
-                    if (this.settings.openVaultFolder) {
-                        // 注意：使用open -a命令时，无法同时打开多个文件，所以这里只打开仓库文件夹
-                        command = `open -a "${this.settings.vscodeExecutablePath}" "${vaultPathFormatted}"`;
-                        // 提示用户使用命令行方式可以同时打开文件和文件夹
-                        new Notice('使用应用程序路径方式只能打开仓库文件夹，如需同时打开文件，请使用命令行方式（如：code）');
-                    } else {
-                        // 只打开文件
-                        command = `open -a "${this.settings.vscodeExecutablePath}" "${absolutePath}"`;
-                    }
+                    command = `open -a "${this.settings.vscodeExecutablePath}" "${absolutePath}"`;
                 } else {
-                    // 使用命令行方式
-                    if (this.settings.openVaultFolder) {
-                        // 同时打开文件和仓库文件夹
-                        command = `"${this.settings.vscodeExecutablePath}"  "${vaultPathFormatted}" --goto "${absolutePath}:${line}:${column}"`;
-                    } else {
-                        // 只打开文件
-                        command = `"${this.settings.vscodeExecutablePath}"  --goto "${absolutePath}:${line}:${column}"`
-                    }
+                    // 如果不是.app结尾，尝试使用命令行直接打开文件
+                    command = `"${this.settings.vscodeExecutablePath}" "${absolutePath}" --goto ${line}:${column}`;
                 }
             }
         }
@@ -162,14 +161,19 @@ class Switch2VSCodeSettingTab extends PluginSettingTab {
                     await this.plugin.saveSettings();
                 }));
 
-        new Setting(containerEl)
-            .setName('同时打开仓库文件夹')
-            .setDesc('启用后，除了打开当前文件外，还会在VSCode中同时打开整个Obsidian仓库文件夹')
-            .addToggle(toggle => toggle
-                .setValue(this.plugin.settings.openVaultFolder)
-                .onChange(async (value) => {
-                    this.plugin.settings.openVaultFolder = value;
-                    await this.plugin.saveSettings();
-                }));
+        containerEl.createEl('div', {
+            text: '使用快捷键：',
+            cls: 'setting-item-description'
+        });
+        
+        containerEl.createEl('div', {
+            text: '- Cmd+Alt+B: 使用open命令只打开当前文件',
+            cls: 'setting-item-description'
+        });
+        
+        containerEl.createEl('div', {
+            text: '- Cmd+Alt+F: 使用命令行方式同时打开当前文件和仓库文件夹',
+            cls: 'setting-item-description'
+        });
     }
 }
