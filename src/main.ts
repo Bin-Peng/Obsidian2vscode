@@ -4,12 +4,12 @@ import { platform } from 'os';
 
 interface Switch2VSCodeSettings {
     vscodeExecutablePath: string;
-    openInNewWindow: boolean;
+    openVaultFolder: boolean;
 }
 
 const DEFAULT_SETTINGS: Switch2VSCodeSettings = {
-    vscodeExecutablePath: platform() === 'win32' ? 'code.cmd' : 'code',
-    openInNewWindow: false
+    vscodeExecutablePath: platform() === 'win32' ? 'code.cmd' : '/usr/local/bin/code',
+    openVaultFolder: false
 };
 
 export default class Switch2VSCodePlugin extends Plugin {
@@ -71,19 +71,53 @@ export default class Switch2VSCodePlugin extends Plugin {
 
         // 根据平台构建命令
         let command: string;
+        // 处理仓库路径，用于同时打开仓库文件夹
+        const vaultPathFormatted = vaultPath.replace(/"/g, '\"').replace(/ /g, '\ ');
+        
         if (platform() === 'win32') {
-            command = `"${this.settings.vscodeExecutablePath}" ${this.settings.openInNewWindow ? '--new-window' : ''} "${absolutePath}" --goto ${line}:${column}`;
+            // Windows平台命令构建
+            if (this.settings.openVaultFolder) {
+                // 同时打开文件和仓库文件夹
+                command = `"${this.settings.vscodeExecutablePath}" "${vaultPathFormatted}" "${absolutePath}" --goto ${line}:${column}`;
+            } else {
+                // 只打开文件
+                command = `"${this.settings.vscodeExecutablePath}" "${absolutePath}" --goto ${line}:${column}`;
+            }
         } else {
             // macOS 优先使用应用程序路径方式打开
             const defaultVSCodePath = '/Applications/Visual Studio Code.app';
-            if (this.settings.vscodeExecutablePath === 'code') {
-                // 如果设置为默认的'code'命令，先尝试使用应用程序路径
-                command = `open -a "${defaultVSCodePath}" ${this.settings.openInNewWindow ? '-n' : ''} "${absolutePath}"`;
+            if (this.settings.vscodeExecutablePath === '/usr/local/bin/code') {
+                // 如果设置为默认的'/usr/local/bin/code'命令，先尝试使用命令行方式以支持同时打开文件夹
+                if (this.settings.openVaultFolder) {
+                    // 同时打开文件和仓库文件夹
+                    command = `"${this.settings.vscodeExecutablePath}" "${vaultPathFormatted}" --goto "${absolutePath}:${line}:${column}"`;
+                } else {
+                    // 只打开文件
+                    command = `"${this.settings.vscodeExecutablePath}" --goto "${absolutePath}:${line}:${column}"`
+                }
             } else {
                 // 使用用户自定义的路径
-                command = this.settings.vscodeExecutablePath.endsWith('.app')
-                    ? `open -a "${this.settings.vscodeExecutablePath}" ${this.settings.openInNewWindow ? '-n' : ''} "${absolutePath}"`
-                    : `"${this.settings.vscodeExecutablePath}" ${this.settings.openInNewWindow ? '-n' : ''} "${absolutePath}" --goto ${line}:${column}`;
+                if (this.settings.vscodeExecutablePath.endsWith('.app')) {
+                    // 使用open -a命令打开应用程序
+                    if (this.settings.openVaultFolder) {
+                        // 注意：使用open -a命令时，无法同时打开多个文件，所以这里只打开仓库文件夹
+                        command = `open -a "${this.settings.vscodeExecutablePath}" "${vaultPathFormatted}"`;
+                        // 提示用户使用命令行方式可以同时打开文件和文件夹
+                        new Notice('使用应用程序路径方式只能打开仓库文件夹，如需同时打开文件，请使用命令行方式（如：code）');
+                    } else {
+                        // 只打开文件
+                        command = `open -a "${this.settings.vscodeExecutablePath}" "${absolutePath}"`;
+                    }
+                } else {
+                    // 使用命令行方式
+                    if (this.settings.openVaultFolder) {
+                        // 同时打开文件和仓库文件夹
+                        command = `"${this.settings.vscodeExecutablePath}"  "${vaultPathFormatted}" --goto "${absolutePath}:${line}:${column}"`;
+                    } else {
+                        // 只打开文件
+                        command = `"${this.settings.vscodeExecutablePath}"  --goto "${absolutePath}:${line}:${column}"`
+                    }
+                }
             }
         }
 
@@ -129,12 +163,12 @@ class Switch2VSCodeSettingTab extends PluginSettingTab {
                 }));
 
         new Setting(containerEl)
-            .setName('在新窗口中打开')
-            .setDesc('启用后，文件将在新的 VSCode 窗口中打开')
+            .setName('同时打开仓库文件夹')
+            .setDesc('启用后，除了打开当前文件外，还会在VSCode中同时打开整个Obsidian仓库文件夹')
             .addToggle(toggle => toggle
-                .setValue(this.plugin.settings.openInNewWindow)
+                .setValue(this.plugin.settings.openVaultFolder)
                 .onChange(async (value) => {
-                    this.plugin.settings.openInNewWindow = value;
+                    this.plugin.settings.openVaultFolder = value;
                     await this.plugin.saveSettings();
                 }));
     }

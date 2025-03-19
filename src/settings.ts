@@ -1,9 +1,9 @@
 export interface Switch2VSCodeSettings {
     vscodeExecutablePath: string;
-    openInNewWindow: boolean;
+    openVaultFolder: boolean;
 }
 
 export const DEFAULT_SETTINGS: Switch2VSCodeSettings = {
-    vscodeExecutablePath: 'code',
-    openInNewWindow: false
+    vscodeExecutablePath: '/usr/local/bin/code',
+    openVaultFolder: false
 };
